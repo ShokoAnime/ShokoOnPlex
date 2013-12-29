@@ -1,0 +1,16 @@
+
+def Search(query):
+  Log("Search: "+query)
+  obj = XML.ObjectFromURL("http://localhost:8111/JMMServerPlex/Search/1/20/"+String.Quote(query))
+  oc =  ObjectContainer(title1="Anime",title2="Search for "+String.Unquote(query)+"..",identifier="com.plexapp.plugins.myanime")
+  for item in obj.Directory:
+    dr=TVShowObject(title=item.get("title"), art=item.get("art"),thumb=item.get("thumb"))
+    dr.summary=item.get("summary")
+    dr.url=item.get("key")
+    dr.source_title=item.get("source_title")
+    dr.original_title=item.get("original_title")
+    if not (item.get("duration") is None):
+      dr.duration=int(md.get("duration"))
+    oc.add(dr)
+  return oc
+

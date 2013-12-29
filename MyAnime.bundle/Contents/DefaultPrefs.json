@@ -1,0 +1,28 @@
+[
+    {
+        "id": "ip",
+        "type": "text",
+        "label": "Server IP",
+        "default": "localhost"
+    },
+    {
+        "id": "port",
+        "type": "text",
+        "label": "Port",
+        "default": "8111"
+    },
+    {
+        "id": "user",
+        "label": "JMM User",
+        "type": "enum",
+        "values": ["Default", "Family Friendly","User 3","User 4","User 5","User 6", "User 7", "User 8", "User 9", "User 10"],
+        "default": "Default"
+    
+    },
+    {
+        "id": "limit",
+        "type": "text",
+        "label": "Search Limit",
+        "default": "20"
+    }
+]
