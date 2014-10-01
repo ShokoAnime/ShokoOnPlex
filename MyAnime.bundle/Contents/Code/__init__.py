@@ -105,13 +105,12 @@ def Search(query):
 	Response.Headers['Content-type']="text/xml;charset=utf-8"
 	return req.content
 
-@route('/video/jmm/proxy')
-def Proxy(url):
-	url = String.Unquote(url);
-	url = String.Unquote(url);
+@route('/video/jmm/proxy/{url}')
+def Proxy(url,includeExtras='0'):
+	url = url.decode("hex")
+	Response.Headers['Content-type']="text/xml;charset=utf-8"
 	url = RedirectUrlIfNeeeded(url);
 	req = HTTP.Request(url=url,timeout=240)
-	Response.Headers['Content-type']="text/xml;charset=utf-8"
 	return req.content
 
 
