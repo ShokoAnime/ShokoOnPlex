@@ -106,12 +106,13 @@ def Search(query):
 	return req.content
 
 @route('/video/jmm/proxy/{url}')
-def Proxy(url,includeExtras='0'):
+def Proxy(url,includeExtras='0',includeRelated='0',includeRelatedCount='0'):
 	url = url.decode("hex")
 	Response.Headers['Content-type']="text/xml;charset=utf-8"
 	url = RedirectUrlIfNeeeded(url);
 	req = HTTP.Request(url=url,timeout=240)
 	return req.content
+
 
 
 ####################################################################################################
