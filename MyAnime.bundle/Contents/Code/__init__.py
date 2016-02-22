@@ -1,11 +1,19 @@
 
 import datetime
+import os
+from lxml import etree
+import urllib2
+
 
 TITLE 			= 'My Anime'
 ART_DEFAULT 	= 'art-default.jpg'
 ICON_DEFAULT 	= 'icon-default.png'
 ICON_PREFS		= 'Gear.png'
 ICON_SEARCH		= 'Search.png'
+plexhost = 'http://127.0.0.1:32400'
+
+TokenUsers = { }
+
 
 ####################################################################################################
 
@@ -15,8 +23,10 @@ ICON_SEARCH		= 'Search.png'
 def ValidatePrefs():
 	pass
 
+
 def Start():
 	HTTP.CacheTime = 0
+	
 	HTTP.Headers['Cache-Control'] = 'no-cache'
 	ObjectContainer.title1 = TITLE
 	ObjectContainer.art = R(ART_DEFAULT)
@@ -25,31 +35,38 @@ def Start():
 	VideoClipObject.thumb = R(ICON_DEFAULT)
 	VideoClipObject.art = R(ART_DEFAULT)
 
-def GetUserId():
-	user=Prefs['user']
-	if not user:
-		return "1"
-	if (user=='Default'):
-		return "1"
-	if (user=='Family Friendly'):
-		return "2"
-	if (user=='User 3'):
-		return "3"
-	if (user=='User 4'):
-		return "4"
-	if (user=='User 5'):
-		return "5"
-	if (user=='User 6'):
-		return "6"
-	if (user=='User 7'):
-		return "1"
-	if (user=='User 8'):
-		return "1"
-	if (user=='User 9'):
-		return "1"
-	if (user=='User 10'):
-		return "1"
-	return "0"
+def GetCurrentPlexUser():
+	orgtoken = Request.Headers['X-Plex-Token']
+	if orgtoken in TokenUsers:
+		return TokenUsers[orgtoken]		
+	client = Request.Headers['X-Plex-Client-Identifier']
+	origin = plexhost
+#TODO Get from plex 
+	plextoken = os.environ.get('PLEXTOKEN')
+	xml = XML.ElementFromURL(origin+"/identity", headers={'X-Plex-Token': plextoken})
+	machineid=xml.xpath("//MediaContainer/@machineIdentifier")[0]
+	xml = XML.ElementFromURL("https://plex.tv/api/home/users", headers={'X-Plex-Token': plextoken})
+	ids=xml.xpath("//User/@id")
+	username='External'
+	for id in ids:
+		handler = urllib2.HTTPHandler()
+		opener = urllib2.build_opener(handler)
+		request = urllib2.Request("https://plex.tv/api/home/users/"+id+"/switch")
+		request.add_header('X-Plex-Token',plextoken)
+		request.add_header('X-Plex-Client-Identifier',client)
+		request.get_method = lambda: 'POST'
+		xml = XML.ElementFromString(opener.open(request).read())		
+		token=xml.xpath("//user/@authenticationToken")[0]
+		user=xml.xpath("//user/@title")[0]
+		xml = XML.ElementFromURL("https://plex.tv/api/resources?includeHttps=1", headers={'X-Plex-Token': token, 'X-Plex-Client-Identifier' : client})
+		token = xml.xpath("//Device[@clientIdentifier='"+machineid+"']/@accessToken")[0];
+		if token==orgtoken:
+			username=user 
+			break
+ 	TokenUsers[orgtoken]=username
+	return username
+
+
 
 def GetServerUrl():
 	ip="localhost"
@@ -64,6 +81,7 @@ def GetServerUrl():
 @route('/video/jmm/empty')
 def Empty():
 	return ""
+
 def GetLimit():
 	limit="20"
 	if Prefs['limit']:
@@ -82,12 +100,16 @@ def RedirectUrlIfNeeeded(url):
 @handler('/video/jmm', TITLE, art=ART_DEFAULT, thumb=ICON_DEFAULT)
 def MainMenu():
 	try:
-		req = HTTP.Request(url=GetServerUrl()+"JMMServerPlex/GetFilters/"+GetUserId(),timeout=10)
+		if "X-Plex-Product" in Request.Headers:
+			HTTP.Headers['X-Plex-Product'] = Request.Headers['X-Plex-Product']
+
+		user=GetCurrentPlexUser()
+		req = HTTP.Request(url= GetServerUrl()+"JMMServerPlex/GetFilters/"+user,timeout=10)
 		if req.content:
 			Response.Headers['Content-type']="text/xml;charset=utf-8"
 			return req.content.replace('</MediaContainer>','<Directory prompt="Search" thumb="'+R(ICON_SEARCH)+'" art="'+R(ICON_SEARCH)+'" key="/video/jmm/search" title="Search" search="1"/><Directory title="Preferences" thumb="'+R(ICON_PREFS)+'" art="'+R(ICON_PREFS)+'" key="/:/plugins/com.plexapp.plugins.myanime/prefs" settings="1"/></MediaContainer>')
 		else:
-			Log("My Anime Url: "+GetServerUrl()+"JMMServerPlex/GetFilters/"+GetUserId()+" returns empty, check if the user has categories assigned");
+			Log("My Anime Url: "+ GetServerUrl()+"JMMServerPlex/GetFilters/"+user+" returns empty, check if the user has categories assigned");
 			oc = ObjectContainer(title2='My Anime')
 			oc.add(DirectoryObject(key = Callback(Empty), title='Invalid User, please verify preferences'))
 			oc.add(PrefsObject(title = 'Preferences', thumb = R(ICON_PREFS), art= R(ICON_PREFS)))
@@ -99,14 +121,18 @@ def MainMenu():
 		oc.add(PrefsObject(title = 'Preferences', thumb = R(ICON_PREFS), art= R(ICON_PREFS)))
 		return oc
 
+@route('/video/jmm/getsearchurl')
+def GetSearchUrl():
+	return GetServerUrl()+"JMMServerPlex/Search/"+GetCurrentPlexUser()+"/"+GetLimit()
 @route('/video/jmm/search')
 def Search(query):
-	req = HTTP.Request(url=GetServerUrl()+"JMMServerPlex/Search/"+GetUserId()+"/"+GetLimit()+"/"+String.Quote(query),timeout=240)
+	Log("Inside Search"+query)
+	req = HTTP.Request(url= GetServerUrl()+"JMMServerPlex/Search/"+GetCurrentPlexUser()+"/"+GetLimit()+"/"+String.Quote(query),timeout=240)
 	Response.Headers['Content-type']="text/xml;charset=utf-8"
 	return req.content
 
-@route('/video/jmm/proxy/{url}')
-def Proxy(url,includeExtras='0',includeRelated='0',includeRelatedCount='0'):
+@route('/video/jmm/proxy/{url}', allow_sync=True)
+def Proxy(url,includeExtras='0',includeRelated='0',includeRelatedCount='0',checkFiles='1',includeConcerts='1',includeOnDeck='1',includePopularLeaves='1',includeChapters='1'):
 	url = url.decode("hex")
 	Response.Headers['Content-type']="text/xml;charset=utf-8"
 	url = RedirectUrlIfNeeeded(url);

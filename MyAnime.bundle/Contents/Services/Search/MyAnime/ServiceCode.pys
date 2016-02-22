@@ -1,16 +1,26 @@
+import os
 
 def Search(query):
-  Log("Search: "+query)
-  obj = XML.ObjectFromURL("http://localhost:8111/JMMServerPlex/Search/1/20/"+String.Quote(query))
-  oc =  ObjectContainer(title1="Anime",title2="Search for "+String.Unquote(query)+"..",identifier="com.plexapp.plugins.myanime")
+  filename = "../../Preferences/com.plexapp.plugins.myanime.xml"
+  size = os.path.getsize(filename)
+  fd = os.open(filename, os.O_RDONLY)
+  data = os.read(fd, size)
+  xml = XML.ElementFromString(data)    
+  ip=xml.xpath("/PluginPreferences/ip/text()")[0]
+  port=xml.xpath("/PluginPreferences/port/text()")[0]
+  limit=xml.xpath("/PluginPreferences/limit/text()")[0]
+  host="http://"+str(ip)+":"+str(port)+"/JMMServerPlex/Search/0/"+str(limit)+"/"+String.Quote(query)
+  obj=XML.ObjectFromURL(host)
+  oc =  ObjectContainer()
+  oc.title1=obj.get("title1")
+  oc.title2=obj.get("title2")
+  oc.identifier=obj.get("identifier")
   for item in obj.Directory:
-    dr=TVShowObject(title=item.get("title"), art=item.get("art"),thumb=item.get("thumb"))
+    dr=DirectoryObject(title=item.get("title"), art=item.get("art"),thumb=item.get("thumb"))
+    dr.key=item.get("key")
+    dr.rating_key=item.get("key")
     dr.summary=item.get("summary")
-    dr.url=item.get("key")
-    dr.source_title=item.get("source_title")
-    dr.original_title=item.get("original_title")
-    if not (item.get("duration") is None):
-      dr.duration=int(md.get("duration"))
+    dr.source_title=item.get("title")
+    dr.originally_available_at=item.get("originally_available_at")
     oc.add(dr)
   return oc
-
