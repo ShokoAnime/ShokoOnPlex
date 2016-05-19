@@ -43,6 +43,9 @@ def GetCurrentPlexUser():
 	origin = plexhost
 #TODO Get from plex 
 	plextoken = os.environ.get('PLEXTOKEN')
+	if (plextoken == None):
+		xml = XML.ElementFromURL(origin+"/myplex/account")
+		plextoken=xml.xpath("//MyPlex/@authToken")[0]
 	xml = XML.ElementFromURL(origin+"/identity", headers={'X-Plex-Token': plextoken})
 	machineid=xml.xpath("//MediaContainer/@machineIdentifier")[0]
 	xml = XML.ElementFromURL("https://plex.tv/api/home/users", headers={'X-Plex-Token': plextoken})
