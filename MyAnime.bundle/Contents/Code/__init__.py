@@ -36,38 +36,42 @@ def Start():
 	VideoClipObject.art = R(ART_DEFAULT)
 
 def GetCurrentPlexUser():
-	orgtoken = Request.Headers['X-Plex-Token']
-	if orgtoken in TokenUsers:
-		return TokenUsers[orgtoken]		
-	client = Request.Headers['X-Plex-Client-Identifier']
-	origin = plexhost
-#TODO Get from plex 
-	plextoken = os.environ.get('PLEXTOKEN')
-	if (plextoken == None):
-		xml = XML.ElementFromURL(origin+"/myplex/account")
-		plextoken=xml.xpath("//MyPlex/@authToken")[0]
-	xml = XML.ElementFromURL(origin+"/identity", headers={'X-Plex-Token': plextoken})
-	machineid=xml.xpath("//MediaContainer/@machineIdentifier")[0]
-	xml = XML.ElementFromURL("https://plex.tv/api/home/users", headers={'X-Plex-Token': plextoken})
-	ids=xml.xpath("//User/@id")
-	username='External'
-	for id in ids:
-		handler = urllib2.HTTPHandler()
-		opener = urllib2.build_opener(handler)
-		request = urllib2.Request("https://plex.tv/api/home/users/"+id+"/switch")
-		request.add_header('X-Plex-Token',plextoken)
-		request.add_header('X-Plex-Client-Identifier',client)
-		request.get_method = lambda: 'POST'
-		xml = XML.ElementFromString(opener.open(request).read())		
-		token=xml.xpath("//user/@authenticationToken")[0]
-		user=xml.xpath("//user/@title")[0]
-		xml = XML.ElementFromURL("https://plex.tv/api/resources?includeHttps=1", headers={'X-Plex-Token': token, 'X-Plex-Client-Identifier' : client})
-		token = xml.xpath("//Device[@clientIdentifier='"+machineid+"']/@accessToken")[0];
-		if token==orgtoken:
-			username=user 
-			break
- 	TokenUsers[orgtoken]=username
-	return username
+	try:
+		orgtoken = Request.Headers['X-Plex-Token']
+		if orgtoken in TokenUsers:
+			return TokenUsers[orgtoken]		
+		client = Request.Headers['X-Plex-Client-Identifier']
+		origin = plexhost
+	#TODO Get from plex 
+		plextoken = os.environ.get('PLEXTOKEN')
+		if (plextoken == None):
+			xml = XML.ElementFromURL(origin+"/myplex/account")
+			plextoken=xml.xpath("//MyPlex/@authToken")[0]
+		xml = XML.ElementFromURL(origin+"/identity", headers={'X-Plex-Token': plextoken})
+		machineid=xml.xpath("//MediaContainer/@machineIdentifier")[0]
+		xml = XML.ElementFromURL("https://plex.tv/api/home/users", headers={'X-Plex-Token': plextoken})
+		ids=xml.xpath("//User/@id")
+		username='External'
+		for id in ids:
+			handler = urllib2.HTTPHandler()
+			opener = urllib2.build_opener(handler)
+			request = urllib2.Request("https://plex.tv/api/home/users/"+id+"/switch")
+			request.add_header('X-Plex-Token',plextoken)
+			request.add_header('X-Plex-Client-Identifier',client)
+			request.get_method = lambda: 'POST'
+			xml = XML.ElementFromString(opener.open(request).read())		
+			token=xml.xpath("//user/@authenticationToken")[0]
+			user=xml.xpath("//user/@title")[0]
+			xml = XML.ElementFromURL("https://plex.tv/api/resources?includeHttps=1", headers={'X-Plex-Token': token, 'X-Plex-Client-Identifier' : client})
+			token = xml.xpath("//Device[@clientIdentifier='"+machineid+"']/@accessToken")[0];
+			if token==orgtoken:
+				username=user 
+				break
+ 		TokenUsers[orgtoken]=username
+	 	return username
+	except Exception, e:
+		Log("My Anime Exception: "+str(e))
+		return '1'
 
 
 
