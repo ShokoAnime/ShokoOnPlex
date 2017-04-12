@@ -139,7 +139,7 @@ def Search(query):
 	return req.content
 
 @route('/video/jmm/proxy/{url}', allow_sync=True)
-def Proxy(url,includeExtras='0',includeRelated='0',includeRelatedCount='0',checkFiles='1',includeConcerts='1',includeOnDeck='1',includePopularLeaves='1',includeChapters='1'):
+def Proxy(url,includeExtras='0',includeRelated='0',includeRelatedCount='0',checkFiles='1',includeConcerts='1',includeOnDeck='1',includePopularLeaves='1',includeChapters='1',includeBandwidths='0'):
 	url = url.decode("hex")
 	Response.Headers['Content-type']="text/xml;charset=utf-8"
 	url = RedirectUrlIfNeeeded(url);
