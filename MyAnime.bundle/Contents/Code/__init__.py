@@ -110,13 +110,16 @@ def MainMenu():
 		if "X-Plex-Product" in Request.Headers:
 			HTTP.Headers['X-Plex-Product'] = Request.Headers['X-Plex-Product']
 
+                HTTP.Headers['Accept'] = 'application/xml'
+
 		user=GetCurrentPlexUser()
-		req = HTTP.Request(url= GetServerUrl()+"JMMServerPlex/GetFilters/"+user,timeout=10)
+		req = HTTP.Request(url= GetServerUrl()+"api/Plex/Filters/"+user,timeout=10)
 		if req.content:
 			Response.Headers['Content-type']="text/xml;charset=utf-8"
-			return req.content;
+			#return req.content.replace('</MediaContainer>','<Directory prompt="Search" thumb="'+R(ICON_SEARCH)+'" art="'+R(ICON_SEARCH)+'" key="/video/jmm/search" title="Search" search="1"/><Directory title="Preferences" thumb="'+R(ICON_PREFS)+'" art="'+R(ICON_PREFS)+'" key="/:/plugins/com.plexapp.plugins.myanime/prefs" settings="1"/></MediaContainer>')
+                        return req.content
 		else:
-			Log("My Anime Url: "+ GetServerUrl()+"JMMServerPlex/GetFilters/"+user+" returns empty, check if the user has categories assigned");
+			Log("My Anime Url: "+ GetServerUrl()+"api/Plex/Filters/"+user+" returns empty, check if the user has categories assigned");
 			oc = ObjectContainer(title2='My Anime')
 			oc.add(DirectoryObject(key = Callback(Empty), title='Invalid User, please verify preferences'))
 			oc.add(PrefsObject(title = 'Preferences', thumb = R(ICON_PREFS), art= R(ICON_PREFS)))
@@ -130,11 +133,11 @@ def MainMenu():
 
 @route('/video/jmm/getsearchurl')
 def GetSearchUrl():
-	return GetServerUrl()+"JMMServerPlex/Search/"+GetCurrentPlexUser()+"/"+GetLimit()
+	return GetServerUrl()+"api/Plex/Search/"+GetCurrentPlexUser()+"/"+GetLimit()
 @route('/video/jmm/search')
 def Search(query):
 	Log("Inside Search"+query)
-	req = HTTP.Request(url= GetServerUrl()+"JMMServerPlex/Search/"+GetCurrentPlexUser()+"/"+GetLimit()+"/"+String.Quote(query),timeout=240)
+	req = HTTP.Request(url= GetServerUrl()+"api/Plex/Search/"+GetCurrentPlexUser()+"/"+GetLimit()+"/"+String.Quote(query),timeout=240)
 	Response.Headers['Content-type']="text/xml;charset=utf-8"
 	return req.content
 
